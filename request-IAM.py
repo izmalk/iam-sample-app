@@ -34,9 +34,17 @@ with TypeDB.core_client("0.0.0.0:1729") as client:  # Connect to TypeDB server
         with session.transaction(TransactionType.READ, typedb_options) as transaction:  # Open transaction to read with inference
             typeql_read_query = "match $u isa user, has name 'Kevin Morrison'; $p($u, $pa) isa permission; " \
                                 "$o isa object, has filepath $fp; $pa($o, $va) isa access; " \
-                                "$va isa action, has name 'view_file'; get $fp;"
+                                "$va isa action, has name 'view_file'; get $fp; sort $fp asc; offset 0; limit 5;"
             iterator = transaction.query().match(typeql_read_query)  # Executing query
             k = 0
+            for item in iterator:  # Iterating through results
+                k += 1  # Counter
+                print("File #" + str(k) + ": " + item.get("fp").get_value())
+
+            typeql_read_query = "match $u isa user, has name 'Kevin Morrison'; $p($u, $pa) isa permission; " \
+                                "$o isa object, has filepath $fp; $pa($o, $va) isa access; " \
+                                "$va isa action, has name 'view_file'; get $fp; sort $fp asc; offset 5; limit 5;"
+            iterator = transaction.query().match(typeql_read_query)  # Executing query
             for item in iterator:  # Iterating through results
                 k += 1  # Counter
                 print("File #" + str(k) + ": " + item.get("fp").get_value())
