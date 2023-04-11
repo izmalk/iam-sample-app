@@ -29,9 +29,7 @@ with TypeDB.core_client("0.0.0.0:1729") as client:  # Connect to TypeDB server
             print("Files found:", k)  # Print number of results
 
         print("\nRequest #3: Files that Kevin Morrison has view access to (with inference)")
-        typedb_options = TypeDBOptions.core()  # Initialising a new set of options
-        typedb_options.infer = True  # Enabling inference in this new set of options
-        with session.transaction(TransactionType.READ, typedb_options) as transaction:  # Open transaction to read with inference
+        with session.transaction(TransactionType.READ, TypeDBOptions.core().set_infer(True)) as transaction:  # Open transaction to read with inference
             typeql_read_query = "match $u isa user, has full-name 'Kevin Morrison'; $p($u, $pa) isa permission; " \
                                 "$o isa object, has path $fp; $pa($o, $va) isa access; " \
                                 "$va isa action, has action-name 'view_file'; get $fp; sort $fp asc; offset 0; limit 5;"
