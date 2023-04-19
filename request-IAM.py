@@ -32,7 +32,7 @@ with TypeDB.core_client("0.0.0.0:1729") as client:  # Connect to TypeDB server
         with session.transaction(TransactionType.READ, TypeDBOptions.core().set_infer(True)) as transaction:  # Open transaction to read with inference
             typeql_read_query = "match $u isa user, has full-name 'Kevin Morrison'; $p($u, $pa) isa permission; " \
                                 "$o isa object, has path $fp; $pa($o, $va) isa access; " \
-                                "$va isa action, has action-name 'view_file'; get $fp; sort $fp asc; offset 0; limit 5;"
+                                "$va isa action, has name 'view_file'; get $fp; sort $fp asc; offset 0; limit 5;"
             iterator = transaction.query().match(typeql_read_query)  # Executing query
             k = 0  # Reset counter
             for item in iterator:  # Iterating through results
@@ -41,7 +41,7 @@ with TypeDB.core_client("0.0.0.0:1729") as client:  # Connect to TypeDB server
 
             typeql_read_query = "match $u isa user, has full-name 'Kevin Morrison'; $p($u, $pa) isa permission; " \
                                 "$o isa object, has path $fp; $pa($o, $va) isa access; " \
-                                "$va isa action, has action-name 'view_file'; get $fp; sort $fp asc; offset 5; limit 5;"
+                                "$va isa action, has name 'view_file'; get $fp; sort $fp asc; offset 5; limit 5;"
             iterator = transaction.query().match(typeql_read_query)  # Executing query
             for item in iterator:  # Iterating through results
                 k += 1
@@ -55,7 +55,7 @@ with TypeDB.core_client("0.0.0.0:1729") as client:  # Connect to TypeDB server
             transaction.query().insert(typeql_insert_query)  # Executing query
             print("Inserting file:", filepath)
             typeql_insert_query = "match $f isa file, has path '" + filepath + "'; " \
-                                  "$vav isa action, has action-name 'view_file'; " \
+                                  "$vav isa action, has name 'view_file'; " \
                                   "insert ($vav, $f) isa access;"
             print("Adding view access to the file")
             transaction.query().insert(typeql_insert_query)  # Executing query
