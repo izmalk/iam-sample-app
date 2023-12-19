@@ -1,33 +1,33 @@
 from typedb.driver import TypeDB, SessionType, TransactionType, TypeDBOptions
 from datetime import datetime
-db_name = "iam"
-server_addr = "127.0.0.1:1729"
+DB_NAME = "iam"
+SERVER_ADDR = "127.0.0.1:1729"
 
 print("IAM Sample App")
 
-print("Database setup initiated. Attempting to connect...")
-with TypeDB.core_driver(server_addr) as driver:  # Connect to TypeDB Core server
-    if driver.databases.contains(db_name):
+print("Attempting to connect to a TypeDB Core server: ", SERVER_ADDR)
+with TypeDB.core_driver(SERVER_ADDR) as driver:  # Connect to TypeDB Core server
+    if driver.databases.contains(DB_NAME):
         print("Found a pre-existing database! Re-creating with the default schema and data...")
-        driver.databases.get(db_name).delete()
-    driver.databases.create(db_name)
-    if driver.databases.contains(db_name):
-        print("Empty database ready.")
-    print("Opening a Schema session to define schema.")
-    with driver.session(db_name, SessionType.SCHEMA) as session:
+        driver.databases.get(DB_NAME).delete()
+    driver.databases.create(DB_NAME)
+    if driver.databases.contains(DB_NAME):
+        print("Empty database created.")
+    print("Opening a Schema session to define a schema.")
+    with driver.session(DB_NAME, SessionType.SCHEMA) as session:
         with session.transaction(TransactionType.WRITE) as transaction:
             with open('iam-schema.tql', 'r') as data:
                 define_query = data.read()
             transaction.query.define(define_query)
             transaction.commit()
     print("Opening a Data session to insert data.")
-    with driver.session(db_name, SessionType.DATA) as session:
+    with driver.session(DB_NAME, SessionType.DATA) as session:
         with session.transaction(TransactionType.WRITE) as transaction:
             with open('iam-data-single-query.tql', 'r') as data:
                 insert_query = data.read()
             transaction.query.insert(insert_query)
             transaction.commit()
-        print("Testing a database.")
+        print("Testing the new database.")
         with session.transaction(TransactionType.READ) as transaction:  # Re-using a session to open a new transaction
             test_query = "match $u isa user; get $u; count;"
             response = transaction.query.get_aggregate(test_query)
@@ -39,7 +39,7 @@ with TypeDB.core_driver(server_addr) as driver:  # Connect to TypeDB Core server
                 exit()
 
     print("Commencing sample requests.")
-    with driver.session(db_name, SessionType.DATA) as session:
+    with driver.session(DB_NAME, SessionType.DATA) as session:
         print("\nRequest #1: User listing")
         with session.transaction(TransactionType.READ) as transaction:
             typeql_read_query = "match $u isa user, has full-name $n, has email $e; get;"
@@ -48,7 +48,7 @@ with TypeDB.core_driver(server_addr) as driver:  # Connect to TypeDB Core server
             for item in iterator:  # Iterating through results
                 k += 1
                 print("User #" + str(k) + ": " + item.get("n").as_attribute().get_value() + ", has E-Mail: " + item.get("e").as_attribute().get_value())
-            print("Users found:", k)  # Print the number of results
+            print("Users found:", k)
 
         print("\nRequest #2: Files that Kevin Morrison has access to")
         with session.transaction(TransactionType.READ) as transaction:
@@ -86,10 +86,10 @@ with TypeDB.core_driver(server_addr) as driver:  # Connect to TypeDB Core server
             filename = "logs/" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".log"
             typeql_insert_query = "insert $f isa file, has path '" + filename + "';"
             transaction.query.insert(typeql_insert_query)  # Executing the query to insert the file
-            print("Inserting file:", filename)
+            print("Inserted file:", filename)
             typeql_insert_query = "match $f isa file, has path '" + filename + "'; " \
                                   "$vav isa action, has name 'view_file'; " \
                                   "insert ($vav, $f) isa access;"
-            print("Adding view access to the file")
             transaction.query.insert(typeql_insert_query)  # Executing the second query in the same transaction
+            print("Added view access to the file.")
             transaction.commit()  # commit transaction to persist changes
