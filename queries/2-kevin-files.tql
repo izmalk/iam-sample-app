@@ -1,0 +1,6 @@
+match
+$u isa user, has full-name 'Kevin Morrison';
+$p($u, $pa) isa permission;
+$o isa object, has path $fp;
+$pa($o, $va) isa access;
+get $fp;

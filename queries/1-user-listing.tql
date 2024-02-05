@@ -1,0 +1,4 @@
+match
+$u isa user;
+fetch
+$u as user: full-name, email;
