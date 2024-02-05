@@ -44,33 +44,34 @@ def test_initial_database(data_session):
             return False
 
 
-def fetch_all_users(data_session, fetch_query):
+def fetch_all_users(data_session, query_file):
     with data_session.transaction(TransactionType.READ) as tx:
-        with open(fetch_query, 'r') as data:
+        with open(query_file, 'r') as data:
             typeql_fetch_query = data.read()
         iterator = tx.query.fetch(typeql_fetch_query)  # Executing the query
         result = []
         for item in iterator:  # Iterating through results
             result.append(item)
-            # print("User #" + str(k) + ": " + item.get("n").as_attribute().get_value() + ", has E-Mail: " + item.get("e").as_attribute().get_value())
-        # print("Users found:", k)
         if len(result) > 0:
             return result
         return 0
 
 
-def get_kevin_files(data_session, get_query, inference=False):
+# todo Implement pagination
+def get_kevin_files(data_session, query_file, inference=False):
     if inference:
         options = TypeDBOptions(infer=True)
     else:
-        options = TypeDBOptions
-    with data_session.tx(TransactionType.READ, options) as tx:
-        iterator = tx.query.get(get_query)
+        options = TypeDBOptions()
+    with open(query_file, 'r') as data:
+        typeql_fetch_query = data.read()
+    with data_session.transaction(TransactionType.READ, options) as tx:
+        iterator = tx.query.get(typeql_fetch_query)
         result = []
         k = 0
         for i, item in enumerate(iterator):
             result.append("File #" + str(i+1) + ": " + item.get("fp").as_attribute().get_value())
-            k = i
+            k = i + 1
     return result, k
 
 
@@ -104,25 +105,7 @@ with TypeDB.core_driver(SERVER_ADDR) as driver:
         print("Files found:", count)
 
 
-    #     print("\nRequest #3: Files that Kevin Morrison has view access to (with inference)")
-    #     with session.transaction(TransactionType.READ, TypeDBOptions(infer=True)) as transaction:  # Inference enabled
-    #         typeql_read_query = "match $u isa user, has full-name 'Kevin Morrison'; $p($u, $pa) isa permission; " \
-    #                             "$o isa object, has path $fp; $pa($o, $va) isa access; " \
-    #                             "$va isa action, has name 'view_file'; get $fp; sort $fp asc; offset 0; limit 5;"  # Only the first five results
-    #         iterator = transaction.query.get(typeql_read_query)
-    #         k = 0
-    #         for item in iterator:
-    #             k += 1
-    #             print("File #" + str(k) + ": " + item.get("fp").as_attribute().get_value())
-    #
-    #         typeql_read_query = "match $u isa user, has full-name 'Kevin Morrison'; $p($u, $pa) isa permission; " \
-    #                             "$o isa object, has path $fp; $pa($o, $va) isa access; " \
-    #                             "$va isa action, has name 'view_file'; get $fp; sort $fp asc; offset 5; limit 5;"  # The next five results
-    #         iterator = transaction.query.get(typeql_read_query)
-    #         for item in iterator:
-    #             k += 1
-    #             print("File #" + str(k) + ": " + item.get("fp").as_attribute().get_value())
-    #         print("Files found:", k)
+
     #
     #     print("\nRequest #4: Add a new file and a view access to it")
     #     with session.transaction(TransactionType.WRITE) as transaction:  # Open a transaction to write
