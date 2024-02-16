@@ -1,108 +1,41 @@
 from typedb.driver import TypeDB, SessionType, TransactionType, TypeDBOptions
 from datetime import datetime
 
+import queries
+import setup
+
 DB_NAME = "iam"
 SERVER_ADDR = "127.0.0.1:1729"
 
 
-def create_new_database(db):
-    if driver.databases.contains(DB_NAME):
-        driver.databases.get(DB_NAME).delete()  # Delete the database if it exists already
-    driver.databases.create(DB_NAME)
-    if not driver.databases.contains(DB_NAME):
-        print("Database creation failed. Terminating...")
-        exit()
-
-
-def db_schema_setup(schema_session, schema_file='iam-schema.tql'):
-    with schema_session.transaction(TransactionType.WRITE) as tx:
-        with open(schema_file, 'r') as data:
-            define_query = data.read()
-        tx.query.define(define_query)
-        tx.commit()
-
-
-def db_dataset_setup(data_session, data_file='iam-data-single-query.tql'):
-    with data_session.transaction(TransactionType.WRITE) as tx:
-        with open(data_file, 'r') as data:
-            insert_query = data.read()
-        tx.query.insert(insert_query)
-        tx.commit()
-
-
-def test_initial_database(data_session):
-    print("Testing the new database.")
-    with data_session.transaction(TransactionType.READ) as tx:  # Re-using a session to open a new transaction
-        test_query = "match $u isa user; get $u; count;"
-        response = tx.query.get_aggregate(test_query)
-        result = response.resolve().as_value().as_long()
-        if result == 3:
-            print("Test OK. Database setup complete.")
-            return True
-        else:
-            print("Test failed with the following result:", result, " expected result: 3.")
-            return False
-
-
-def fetch_all_users(data_session, query_file):
-    with data_session.transaction(TransactionType.READ) as tx:
-        with open(query_file, 'r') as data:
-            typeql_fetch_query = data.read()
-        iterator = tx.query.fetch(typeql_fetch_query)  # Executing the query
-        result = []
-        for item in iterator:  # Iterating through results
-            result.append(item)
-        if len(result) > 0:
-            return result
-        return 0
-
-
-# todo Implement pagination
-def get_kevin_files(data_session, query_file, inference=False):
-    if inference:
-        options = TypeDBOptions(infer=True)
-    else:
-        options = TypeDBOptions()
-    with open(query_file, 'r') as data:
-        typeql_fetch_query = data.read()
-    with data_session.transaction(TransactionType.READ, options) as tx:
-        iterator = tx.query.get(typeql_fetch_query)
-        result = []
-        k = 0
-        for i, item in enumerate(iterator):
-            result.append("File #" + str(i+1) + ": " + item.get("fp").as_attribute().get_value())
-            k = i + 1
-    return result, k
-
-
-print("IAM Sample App")
-with TypeDB.core_driver(SERVER_ADDR) as driver:
-    print("Connected to TypeDB Core server: ", SERVER_ADDR)
-    create_new_database(DB_NAME)
-    with driver.session(DB_NAME, SessionType.SCHEMA) as session:
-        db_schema_setup(session)
-    with driver.session(DB_NAME, SessionType.DATA) as session:
-        db_dataset_setup(session)
-        if not test_initial_database(session):
-            exit()
+if __name__ == "__main__":
+    print("IAM Sample App")
+    if setup.db_setup():
         print("Commencing sample requests.")
+    else:
+        print("Setup failed. Terminating.")
 
-        print("\nRequest #1: User listing")
-        users = fetch_all_users(session, 'queries/1-user-listing.tql')
-        for i, user in enumerate(users):
-            print(f"User # {i+1}: {user}")  #printing every JSON returned
+    with TypeDB.core_driver(SERVER_ADDR) as driver:
+        with driver.session(DB_NAME,SessionType.DATA) as data_session:
+            with data_session.transaction(TransactionType.READ) as read_txn:
+                print("\nRequest #1: User listing")
+                with open('queries/1-user-listing.tql', 'r') as data:
+                    typeql_fetch_query = data.read()
+                users = queries.fetch_users(data_session, typeql_fetch_query)
+                for i, JSON in enumerate(users):
+                    print(f"User # {i+1}: {JSON}")
 
-        print("\nRequest #2: Files that Kevin Morrison has access to")
-        files, count = get_kevin_files(session, 'queries/2-kevin-files.tql')
-        for file in files:
-            print(file)
-        print("Files found:", count)
+                print("\nRequest #2: Files that Kevin Morrison has access to")
+                count, results = queries.get_query(data_session, 'queries/2-kevin-files.tql', ["fp"])
+                for result in results:
+                    print(result)
+                print("Files found:", count)
 
-        print("\nRequest #3: Files that Kevin Morrison has view access to (with inference)")
-        files, count = get_kevin_files(session, 'queries/3-kevin-view-files.tql', inference=True)
-        for file in files:
-            print(file)
-        print("Files found:", count)
+                print("\nRequest #3: Files that Kevin Morrison has view access to (with inference)")
+                count, results = queries.get_query(data_session, 'queries/3-kevin-view-files.tql', ["fp"], inference=True)
+                for result in results:
+                    print(result)
+                print("Files found:", count)
 
 
 
