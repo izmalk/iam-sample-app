@@ -5,30 +5,21 @@ DB_NAME = "sample_app"
 SERVER_ADDR = "127.0.0.1:1729"
 
 
-def fetch_all_users(driver):
+def fetch_all_users(driver) -> list:
     print("\nRequest #1: Fetch all users as JSON objects with full names and emails")
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.READ) as read_tx:
-            users = list(read_tx.query.fetch("match $u isa user; fetch $u: full-name, email;"))
-            for i, JSON in enumerate(users):
-                print(f"User #{i + 1}: {JSON}")
-            return users
+            return list(read_tx.query.fetch("match $u isa user; fetch $u: full-name, email;"))
 
 
 def insert_new_user(driver, name, email):
     print(f"\nRequest #2: Add a new user with full-name {name} and email {email}")
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
-            response = write_tx.query.insert(
-                f"insert $p isa person, has full-name '{name}', has email '{email}';")
-            counter = 0
-            for res in response:
-                counter += 1
-                name = res.get("_0").as_attribute().get_value()
-                email = res.get("_1").as_attribute().get_value()
-                print("Added new user. Name: " + name + ", E-mail:" + email)
+            response = list(
+                write_tx.query.insert(f"insert $p isa person, has full-name '{name}', has email '{email}';"))
             write_tx.commit()
-            return counter
+            return response
 
 
 def get_files_by_user(driver, name, inference=False):
@@ -43,7 +34,7 @@ def get_files_by_user(driver, name, inference=False):
             matched_users = list(read_tx.query.get(f"match $u isa user, has full-name '{name}'; get;"))
             if len(matched_users) > 1:
                 print("WARNING: Found more than one user with tha name.")
-                return []
+                return False
             elif len(matched_users) == 1:
                 response = list(read_tx.query.get(f"""
                                                     match
@@ -65,15 +56,11 @@ def get_files_by_user(driver, name, inference=False):
                                                     $va isa action, has name 'view_file';
                                                     get $fp; sort $fp asc;
                                                     """))
-            files = []
             if len(response) > 0:
-                for i, res in enumerate(response):
-                    file_path = res.get("fp").as_attribute().get_value()
-                    files.append(file_path)
-                    print(f"File #{i + 1}:", file_path)
+                return response
             else:
                 print("No files found. Try enabling inference.")
-            return files
+                return False
 
 
 def update_filepath(driver, old, new):
@@ -90,18 +77,12 @@ def update_filepath(driver, old, new):
                                                     $f has path $new_path;
                                                     $new_path = '{new}';
                                                     """))
-            files = []
-            if len(response) > 1:
-                print(f"Warning: more than one file matched and processed. Total count of files: {len(response)}")
             if len(response) > 0:
-                for res in response:
-                    file_path = res.get("new_path").as_attribute().get_value()
-                    files.append(file_path)
-                    print(f"File {old} has been renamed to {file_path}")
                 write_tx.commit()
+                return response
             else:
-                print("No files found. Try enabling inference.")
-            return files
+                print("No matched paths: nothing to update.")
+                return False
 
 
 def delete_file(driver, path):
@@ -109,10 +90,10 @@ def delete_file(driver, path):
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
             response = list(write_tx.query.get(f"""
-                                    match
-                                    $f isa file, has path '{path}';
-                                    get;
-                                    """))
+                                                match
+                                                $f isa file, has path '{path}';
+                                                get;
+                                                """))
             if len(response) == 1:
                 write_tx.query.delete(f"""
                                         match
@@ -121,11 +102,13 @@ def delete_file(driver, path):
                                         $f isa file;
                                         """).resolve()
                 write_tx.commit()
-                print(f"File {path} has been deleted.")
+                return True
             elif len(response) > 1:
                 print("Matched more than one file with the same path. Deletion was aborted.")
+                return False
             else:
                 print("No files matched in the database.")
+                return False
 
 
 def main():
@@ -133,12 +116,34 @@ def main():
         setup.db_setup(driver, DB_NAME)
 
         print("\nCRUD Operations:")
-        fetch_all_users(driver)
-        insert_new_user(driver, 'Jack Keeper', 'jk@vaticle.com')
-        get_files_by_user(driver, "Kevin Morrison")
-        get_files_by_user(driver, "Kevin Morrison", inference=True)
-        update_filepath(driver, 'lzfkn.java', 'lzfkn2.java')
-        delete_file(driver, 'lzfkn2.java')
+        users = fetch_all_users(driver)
+        for i, JSON in enumerate(users, start=1):
+            print(f"User #{i}: {JSON}")
+
+        new_user = insert_new_user(driver, 'Jack Keeper', 'jk@vaticle.com')
+        for i, concept_map in enumerate(new_user, start=1):
+            name = concept_map.get("_0").as_attribute().get_value()
+            email = concept_map.get("_1").as_attribute().get_value()
+            print("Added new user. Name: " + name + ", E-mail:" + email)
+
+        files = get_files_by_user(driver, "Kevin Morrison")
+        if not (files is False):
+            for i, file in enumerate(files, start=1):
+                print(f"File #{i}:", file.get("fp").as_attribute().get_value())
+
+        files = get_files_by_user(driver, "Kevin Morrison", inference=True)
+        if not (files is False):
+            for i, file in enumerate(files, start=1):
+                print(f"File #{i}:", file.get("fp").as_attribute().get_value())
+
+        updated_files = update_filepath(driver, 'lzfkn.java', 'lzfkn2.java')
+        print(f"Total number of paths updated: {len(updated_files)}")
+
+        deleted = delete_file(driver, 'lzfkn2.java')
+        if deleted:
+            print("The file has been deleted.")
+        else:
+            print("No files were deleted.")
 
 
 if __name__ == "__main__":
