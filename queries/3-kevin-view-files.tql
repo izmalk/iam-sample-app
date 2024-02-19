@@ -1,8 +1,0 @@
-match
-$u isa user, has full-name 'Kevin Morrison';
-$p($u, $pa) isa permission;
-$o isa object, has path $fp;
-$pa($o, $va) isa access;
-$va isa action, has name 'view_file';
-get $fp; sort $fp asc;
-# offset 0; limit 5;
