@@ -6,7 +6,7 @@ SERVER_ADDR = "127.0.0.1:1729"
 
 
 def fetch_all_users(driver):
-    print("\nRequest #1: Fetching all users as JSON objects with full names and emails")
+    print("\nRequest #1: Fetch all users as JSON objects with full names and emails")
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.READ) as read_tx:
             users = list(read_tx.query.fetch("match $u isa user; fetch $u: full-name, email;"))
@@ -15,12 +15,12 @@ def fetch_all_users(driver):
             return users
 
 
-def insert_new_user(driver):
-    print("\nRequest #2: Add new user with full-name and email")
+def insert_new_user(driver, name, email):
+    print(f"\nRequest #2: Add a new user with full-name {name} and email {email}")
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
             response = write_tx.query.insert(
-                "insert $p isa person, has full-name 'Jack Keeper', has email 'jk@vaticle.com';")
+                f"insert $p isa person, has full-name '{name}', has email '{email}';")
             counter = 0
             for res in response:
                 counter += 1
@@ -33,17 +33,17 @@ def insert_new_user(driver):
 
 def get_files_by_user(driver, name, inference=False):
     if not inference:
-        print("\nRequest #3: Find all files that user with selected name has access to view (no inference)")
+        print(f"\nRequest #3: Find all files that the user {name} has access to view (no inference)")
         options = TypeDBOptions()
     else:
-        print("\nRequest #4: Find all files that user with selected name has access to view (with inference)")
+        print(f"\nRequest #4: Find all files that the user {name} has access to view (with inference)")
         options = TypeDBOptions(infer=True)
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.READ, options) as read_tx:
-            matched_users = list(read_tx.query.get(f"match $p isa person, has full-name '{name}'; get;"))
+            matched_users = list(read_tx.query.get(f"match $u isa user, has full-name '{name}'; get;"))
             if len(matched_users) > 1:
                 print("WARNING: Found more than one user with tha name.")
-                return False
+                return []
             elif len(matched_users) == 1:
                 response = list(read_tx.query.get(f"""
                                                     match
@@ -77,7 +77,7 @@ def get_files_by_user(driver, name, inference=False):
 
 
 def update_filepath(driver, old, new):
-    print("\nRequest #5: Update path of a file")
+    print(f"\nRequest #5: Update the path of a file from {old} to {new}")
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
             response = list(write_tx.query.update(f"""
@@ -105,7 +105,7 @@ def update_filepath(driver, old, new):
 
 
 def delete_file(driver, path):
-    print("\nRequest #6: Delete a file")
+    print(f"\nRequest #6: Delete the file with path {path}")
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
             response = list(write_tx.query.get(f"""
@@ -132,9 +132,9 @@ def main():
     with TypeDB.core_driver(SERVER_ADDR) as driver:
         setup.db_setup(driver, DB_NAME)
 
-        print("\nDemonstrating CRUD Operations:")
+        print("\nCRUD Operations:")
         fetch_all_users(driver)
-        insert_new_user(driver)
+        insert_new_user(driver, 'Jack Keeper', 'jk@vaticle.com')
         get_files_by_user(driver, "Kevin Morrison")
         get_files_by_user(driver, "Kevin Morrison", inference=True)
         update_filepath(driver, 'lzfkn.java', 'lzfkn2.java')
