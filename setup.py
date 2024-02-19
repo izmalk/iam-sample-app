@@ -7,7 +7,9 @@ SERVER_ADDR = "127.0.0.1:1729"
 def create_new_database(driver, db_name):
     if driver.databases.contains(db_name):
         driver.databases.get(db_name).delete()  # Delete the database if it exists already
+        print("Found existing database. Replacing", end="...")
     driver.databases.create(db_name)
+    print("OK")
     if not driver.databases.contains(db_name):
         print("Database creation failed. Terminating...")
         exit()
