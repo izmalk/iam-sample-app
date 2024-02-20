@@ -83,6 +83,7 @@ def update_filepath(driver, old, new):
                                                     """))
             if len(response) > 0:
                 write_tx.commit()
+                print(f"Total number of paths updated: {len(response)}.")
                 return response
             else:
                 print("No matched paths: nothing to update.")
@@ -144,8 +145,8 @@ def main():
         new_path = 'lzfkn2.java'
         print(f"\nRequest 5 of 6: Update the path of a file from {old_path} to {new_path}")
         updated_files = update_filepath(driver, old_path, new_path)
-        if updated_files is not None:
-            print(f"Total number of paths updated: {len(updated_files)}")
+        assert updated_files is not None
+        assert len(updated_files) == 1
 
         path = 'lzfkn2.java'
         print(f"\nRequest 6 of 6: Delete the file with path {path}")
