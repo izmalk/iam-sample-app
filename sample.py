@@ -125,10 +125,10 @@ def main():
         users = fetch_all_users(driver)
         assert len(users) == 3
 
-        name = "Jack Keeper"
-        email = "jk@vaticle.com"
-        print(f"\nRequest 2 of 6: Add a new user with the full-name {name} and email {email}")
-        insert_new_user(driver, name, email)
+        new_name = "Jack Keeper"
+        new_email = "jk@vaticle.com"
+        print(f"\nRequest 2 of 6: Add a new user with the full-name {new_name} and email {new_email}")
+        insert_new_user(driver, new_name, new_email)
 
         name = "Kevin Morrison"
         print(f"\nRequest 3 of 6: Find all files that the user {name} has access to view (no inference)")
