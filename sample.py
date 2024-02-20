@@ -127,7 +127,7 @@ def main():
         name = "Jack Keeper"
         email = "jk@vaticle.com"
         print(f"\nRequest 2 of 6: Add a new user with the full-name {name} and email {email}")
-        _new_user = insert_new_user(driver, name, email)
+        insert_new_user(driver, name, email)
 
         name = "Kevin Morrison"
         print(f"\nRequest 3 of 6: Find all files that the user {name} has access to view (no inference)")
