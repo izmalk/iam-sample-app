@@ -1,6 +1,6 @@
 from typedb.driver import TypeDB, SessionType, TransactionType
 
-DB_NAME = "sample_app"
+DB_NAME = "sample_app_db"
 SERVER_ADDR = "127.0.0.1:1729"
 
 
@@ -60,6 +60,7 @@ def db_setup(driver, db_name):
             print("Database setup complete.")
             return True
         else:
+            print("Database setup failed.")
             return False
 
 
