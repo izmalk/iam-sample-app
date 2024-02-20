@@ -106,12 +106,15 @@ def delete_file(driver, path):
                                         $f isa file;
                                         """).resolve()
                 write_tx.commit()
+                print("The file has been deleted.")
                 return True
             elif len(response) > 1:
                 print("Matched more than one file with the same path.")
+                print("No files were deleted.")
                 return False
             else:
                 print("No files matched in the database.")
+                print("No files were deleted.")
                 return False
 
 
@@ -151,10 +154,7 @@ def main():
         path = 'lzfkn2.java'
         print(f"\nRequest 6 of 6: Delete the file with path {path}")
         deleted = delete_file(driver, path)
-        if deleted:
-            print("The file has been deleted.")
-        else:
-            print("No files were deleted.")
+        assert deleted
 
 
 if __name__ == "__main__":
