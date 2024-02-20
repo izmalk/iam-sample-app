@@ -34,7 +34,10 @@ def get_files_by_user(driver, name, inference=False):
     with driver.session(DB_NAME, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.READ, options) as read_tx:
             users = list(read_tx.query.get(f"match $u isa user, has full-name '{name}'; get;"))
-            if len(users) == 1:
+            if len(users) > 1:
+                print("Error: Found more than one user with that name.")
+                return None
+            elif len(users) == 1:
                 response = list(read_tx.query.get(f"""
                                                     match
                                                     $fn == '{name}';
@@ -45,12 +48,9 @@ def get_files_by_user(driver, name, inference=False):
                                                     $va isa action, has name 'view_file';
                                                     get $fp; sort $fp asc;
                                                     """))
-            elif len(users) > 1:
-                print("Error: Found more than one user with that name.")
-                return None
             elif len(users) == 0:
-                print("Warning: No users found with that name. Extending search for full-names containing the "
-                      "provided search string.")
+                print("Warning: No users found with that name. "
+                      "Extending search for full-names containing the provided search string.")
                 response = list(read_tx.query.get(f"""
                                                     match
                                                     $fn contains '{name}';
