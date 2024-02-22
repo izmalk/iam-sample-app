@@ -10,7 +10,7 @@ def fetch_all_users(driver) -> list:
         with data_session.transaction(TransactionType.READ) as read_tx:
             users = list(read_tx.query.fetch("match $u isa user; fetch $u: full-name, email;"))
             for i, JSON in enumerate(users, start=0):
-                print(f"User #{i + 1} — Full-name:", users[i]['u']['full-name'][0]['value'], end="")
+                print(f"User #{i + 1} — Full-name:", JSON['u']['full-name'][0]['value'], end="")
                 print(f", JSON: {JSON}")
             return users
 
