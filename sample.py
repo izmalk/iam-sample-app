@@ -1,8 +1,13 @@
 from typedb.driver import TypeDB, SessionType, TransactionType, TypeDBOptions
 import setup
+import argparse
 
 DB_NAME = setup.DB_NAME
 SERVER_ADDR = setup.SERVER_ADDR
+
+parser = argparse.ArgumentParser(description='Sample application.')
+parser.add_argument('--reset', '--force', action='store_true', help='Reset the database if it exists.')
+args = parser.parse_args()
 
 
 def fetch_all_users(driver) -> list:
@@ -120,7 +125,7 @@ def delete_file(driver, path):
 
 def main():
     with TypeDB.core_driver(SERVER_ADDR) as driver:
-        if not setup.db_setup(driver, DB_NAME):
+        if not setup.db_setup(driver, DB_NAME, db_reset=args.reset):
             print("Terminating...")
             exit()
 

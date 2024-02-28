@@ -4,12 +4,19 @@ DB_NAME = "sample_app_db"
 SERVER_ADDR = "127.0.0.1:1729"
 
 
-def create_new_database(driver, db_name):
+def create_new_database(driver, db_name, db_reset):
     if driver.databases.contains(db_name):
-        driver.databases.get(db_name).delete()  # Delete the database if it exists already
-        print("Found existing database. Replacing", end="...")
-    driver.databases.create(db_name)
-    print("OK")
+        if db_reset:
+            print("Replacing an existing database", end="...")
+            driver.databases.get(db_name).delete()  # Delete the database if it exists already
+            driver.databases.create(db_name)
+            print("OK")
+        else:
+            print("Reusing an existing database. To reset the database, consider using the --reset argument.")
+    else:
+        print("Creating a new database", end="...")
+        driver.databases.create(db_name)
+        print("OK")
     if not driver.databases.contains(db_name):
         print("Database creation failed. Terminating...")
         exit()
@@ -49,13 +56,15 @@ def test_initial_database(data_session):
             return False
 
 
-def db_setup(driver, db_name):
+def db_setup(driver, db_name, db_reset):
     print(f"Setting up the database: {db_name}")
-    create_new_database(driver, db_name)
-    with driver.session(db_name, SessionType.SCHEMA) as session:
-        db_schema_setup(session)
+    create_new_database(driver, db_name, db_reset)
+    if db_reset:
+        with driver.session(db_name, SessionType.SCHEMA) as session:
+            db_schema_setup(session)
+        with driver.session(db_name, SessionType.DATA) as session:
+            db_dataset_setup(session)
     with driver.session(db_name, SessionType.DATA) as session:
-        db_dataset_setup(session)
         if test_initial_database(session):
             print("Database setup complete.")
             return True
