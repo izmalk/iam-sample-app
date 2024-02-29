@@ -119,24 +119,14 @@ def get_files_by_user(driver, name, inference=False):
                                                     $va isa action, has name 'view_file';
                                                     get $fp; sort $fp asc;
                                                     """))
-            elif len(users) == 0:
-                print("Warning: No users found with that name. "
-                      "Extending search for full-names containing the provided search string.")
-                response = list(read_tx.query.get(f"""
-                                                    match
-                                                    $fn contains '{name}';
-                                                    $u isa user, has full-name $fn;
-                                                    $p($u, $pa) isa permission;
-                                                    $o isa object, has path $fp;
-                                                    $pa($o, $va) isa access;
-                                                    $va isa action, has name 'view_file';
-                                                    get $fp; sort $fp asc;
-                                                    """))
-            for i, file in enumerate(response, start=1):
-                print(f"File #{i}:", file.get("fp").as_attribute().get_value())
-            if len(response) == 0:
-                print("No files found. Try enabling inference.")
-            return response
+                for i, file in enumerate(response, start=1):
+                    print(f"File #{i}:", file.get("fp").as_attribute().get_value())
+                if len(response) == 0:
+                    print("No files found. Try enabling inference.")
+                return response
+            else:
+                print("Error: No users found with that name.")
+                return None
 
 
 def update_filepath(driver, old, new):
