@@ -64,13 +64,20 @@ def db_setup(driver, db_name, db_reset):
             db_schema_setup(session)
         with driver.session(db_name, SessionType.DATA) as session:
             db_dataset_setup(session)
-    with driver.session(db_name, SessionType.DATA) as session:
-        if test_initial_database(session):
-            print("Database setup complete.")
-            return True
-        else:
-            print("Database setup failed.")
-            return False
+            if test_initial_database(session):
+                print("Database setup complete.")
+                return True
+            else:
+                print("Database setup failed.")
+                return False
+    else:  # db_reset = false
+        with driver.session(db_name, SessionType.DATA) as session:
+            if test_initial_database(session):
+                print("Database is ready.")
+                return True
+            else:
+                print("The existing database failed testing. Consider resetting the database.")
+                return False
 
 
 def main(driver):
