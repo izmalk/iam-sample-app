@@ -14,11 +14,10 @@ def create_new_database(driver, db_name, db_reset=False):
             return True
         else:  # db_reset = False
             answer = input("Found a pre-existing database. Do you want to replace it? (Y/N) ")
-            answer = answer.lower()
-            if answer == "y":
+            if answer.lower() == "y":
                 return create_new_database(driver, db_name, db_reset=True)
             else:
-                print("Reusing an existing database. To reset the database, consider using the --reset argument.")
+                print("Reusing an existing database.")
                 return False
     else:  # No such database found on the server
         print("Creating a new database", end="...")
