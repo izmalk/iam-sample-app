@@ -4,7 +4,7 @@ DB_NAME = "sample_app_db"
 SERVER_ADDR = "127.0.0.1:1729"
 
 
-def create_new_database(driver, db_name, db_reset=False):
+def create_new_database(driver, db_name, db_reset=False) -> bool:
     if driver.databases.contains(db_name):
         if db_reset:
             print("Replacing an existing database", end="...")
@@ -12,7 +12,7 @@ def create_new_database(driver, db_name, db_reset=False):
             driver.databases.create(db_name)
             print("OK")
             return True
-        else:  # db_reset = False
+        else:
             answer = input("Found a pre-existing database. Do you want to replace it? (Y/N) ")
             if answer.lower() == "y":
                 return create_new_database(driver, db_name, db_reset=True)
@@ -46,7 +46,7 @@ def db_dataset_setup(data_session, data_file='iam-data-single-query.tql'):
         print("OK")
 
 
-def test_initial_database(data_session):
+def test_initial_database(data_session) -> bool:
     with data_session.transaction(TransactionType.READ) as tx:
         test_query = "match $u isa user; get $u; count;"
         print("Testing the database", end="...")
@@ -60,12 +60,12 @@ def test_initial_database(data_session):
             return False
 
 
-def db_setup(driver, db_name, db_reset=False):
+def db_setup(driver, db_name, db_reset=False) -> bool:
     print(f"Setting up the database: {db_name}")
     new_database = create_new_database(driver, db_name, db_reset)
     if not driver.databases.contains(db_name):
         print("Database creation failed. Terminating...")
-        exit()
+        return False
     if new_database:
         with driver.session(db_name, SessionType.SCHEMA) as session:
             db_schema_setup(session)
@@ -75,18 +75,17 @@ def db_setup(driver, db_name, db_reset=False):
         return test_initial_database(session)
 
 
-def fetch_all_users(driver) -> list:
-    with driver.session(DB_NAME, SessionType.DATA) as data_session:
+def fetch_all_users(driver, db_name) -> list:
+    with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.READ) as read_tx:
             users = list(read_tx.query.fetch("match $u isa user; fetch $u: full-name, email;"))
             for i, JSON in enumerate(users, start=0):
-                print(f"User #{i + 1} — Full-name:", JSON['u']['full-name'][0]['value'], end="")
-                print(f", JSON: {JSON}")
+                print(f"User #{i + 1} — Full-name:", JSON['u']['full-name'][0]['value'])
             return users
 
 
-def insert_new_user(driver, name, email):
-    with driver.session(DB_NAME, SessionType.DATA) as data_session:
+def insert_new_user(driver, db_name, name, email) -> list:
+    with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
             response = list(
                 write_tx.query.insert(
@@ -99,9 +98,9 @@ def insert_new_user(driver, name, email):
             return response
 
 
-def get_files_by_user(driver, name, inference=False):
+def get_files_by_user(driver, db_name, name, inference=False):
     options = TypeDBOptions(infer=inference)
-    with driver.session(DB_NAME, SessionType.DATA) as data_session:
+    with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.READ, options) as read_tx:
             users = list(read_tx.query.get(f"match $u isa user, has full-name '{name}'; get;"))
             if len(users) > 1:
@@ -128,8 +127,8 @@ def get_files_by_user(driver, name, inference=False):
                 return None
 
 
-def update_filepath(driver, old, new):
-    with driver.session(DB_NAME, SessionType.DATA) as data_session:
+def update_filepath(driver, db_name, old, new):
+    with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
             response = list(write_tx.query.update(f"""
                                                     match
@@ -150,8 +149,8 @@ def update_filepath(driver, old, new):
                 return None
 
 
-def delete_file(driver, path):
-    with driver.session(DB_NAME, SessionType.DATA) as data_session:
+def delete_file(driver, db_name, path):
+    with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
             response = list(write_tx.query.get(f"""
                                                 match
@@ -185,35 +184,35 @@ def main():
             exit()
 
         print("\nRequest 1 of 6: Fetch all users as JSON objects with full names and emails")
-        users = fetch_all_users(driver)
+        users = fetch_all_users(driver, DB_NAME)
         assert len(users) == 3
 
         new_name = "Jack Keeper"
         new_email = "jk@vaticle.com"
         print(f"\nRequest 2 of 6: Add a new user with the full-name {new_name} and email {new_email}")
-        insert_new_user(driver, new_name, new_email)
+        insert_new_user(driver, DB_NAME, new_name, new_email)
 
         name = "Kevin Morrison"
         print(f"\nRequest 3 of 6: Find all files that the user {name} has access to view (no inference)")
-        files = get_files_by_user(driver, name)
+        files = get_files_by_user(driver, DB_NAME, name)
         assert files is not None
         assert len(files) == 0
 
         print(f"\nRequest 4 of 6: Find all files that the user {name} has access to view (with inference)")
-        files = get_files_by_user(driver, name, inference=True)
+        files = get_files_by_user(driver, DB_NAME, name, inference=True)
         assert files is not None
         assert len(files) == 10
 
         old_path = 'lzfkn.java'
         new_path = 'lzfkn2.java'
         print(f"\nRequest 5 of 6: Update the path of a file from {old_path} to {new_path}")
-        updated_files = update_filepath(driver, old_path, new_path)
+        updated_files = update_filepath(driver, DB_NAME, old_path, new_path)
         assert updated_files is not None
         assert len(updated_files) == 1
 
         path = 'lzfkn2.java'
         print(f"\nRequest 6 of 6: Delete the file with path {path}")
-        deleted = delete_file(driver, path)
+        deleted = delete_file(driver, DB_NAME, path)
         assert deleted
 
 
