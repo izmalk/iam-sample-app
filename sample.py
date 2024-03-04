@@ -1,7 +1,8 @@
-from typedb.driver import TypeDB, SessionType, TransactionType, TypeDBOptions
+from typedb.driver import TypeDB, SessionType, TransactionType, TypeDBOptions, TypeDBCredential
 
 DB_NAME = "sample_app_db"
 SERVER_ADDR = "127.0.0.1:1729"
+TYPEDB_EDITION = 'core'
 
 
 def create_new_database(driver, db_name, db_reset=False) -> bool:
@@ -177,8 +178,16 @@ def delete_file(driver, db_name, path):
                 return False
 
 
+def connection(edition, addr, username='admin', password='password'):
+    if edition.lower() == 'core':
+        return TypeDB.core_driver(addr)
+    if edition.lower() == 'cloud':
+        credentials = TypeDBCredential(username, password, tls_enabled=True)
+        return TypeDB.cloud_driver(addr, credentials)
+
+
 def main():
-    with TypeDB.core_driver(SERVER_ADDR) as driver:
+    with connection(TYPEDB_EDITION, SERVER_ADDR) as driver:
         if not db_setup(driver, DB_NAME, db_reset=False):
             print("Terminating...")
             exit()
