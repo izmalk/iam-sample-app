@@ -1,3 +1,4 @@
+# tag::code[]
 from typedb.driver import TypeDB, SessionType, TransactionType, TypeDBOptions, TypeDBCredential
 
 DB_NAME = "sample_app_db"
@@ -5,6 +6,7 @@ SERVER_ADDR = "127.0.0.1:1729"
 TYPEDB_EDITION = 'core'
 
 
+# tag::create_new_db[]
 def create_new_database(driver, db_name, db_reset=False) -> bool:
     if driver.databases.contains(db_name):
         if db_reset:
@@ -25,8 +27,10 @@ def create_new_database(driver, db_name, db_reset=False) -> bool:
         driver.databases.create(db_name)
         print("OK")
         return True
+# end::create_new_db[]
 
 
+# tag::db-schema-setup[]
 def db_schema_setup(schema_session, schema_file='iam-schema.tql'):
     with open(schema_file, 'r') as data:
         define_query = data.read()
@@ -35,8 +39,10 @@ def db_schema_setup(schema_session, schema_file='iam-schema.tql'):
         tx.query.define(define_query)
         tx.commit()
         print("OK")
+# end::db-schema-setup[]
 
 
+# tag::db-dataset-setup[]
 def db_dataset_setup(data_session, data_file='iam-data-single-query.tql'):
     with open(data_file, 'r') as data:
         insert_query = data.read()
@@ -45,8 +51,10 @@ def db_dataset_setup(data_session, data_file='iam-data-single-query.tql'):
         tx.query.insert(insert_query)
         tx.commit()
         print("OK")
+# end::db-dataset-setup[]
 
 
+# tag::test-db[]
 def test_initial_database(data_session) -> bool:
     with data_session.transaction(TransactionType.READ) as tx:
         test_query = "match $u isa user; get $u; count;"
@@ -59,8 +67,10 @@ def test_initial_database(data_session) -> bool:
         else:
             print("Failed with the result:", result, "\n Expected result: 3.")
             return False
+# end::test-db[]
 
 
+# tag::db-setup[]
 def db_setup(driver, db_name, db_reset=False) -> bool:
     print(f"Setting up the database: {db_name}")
     new_database = create_new_database(driver, db_name, db_reset)
@@ -74,8 +84,10 @@ def db_setup(driver, db_name, db_reset=False) -> bool:
             db_dataset_setup(session)
     with driver.session(db_name, SessionType.DATA) as session:
         return test_initial_database(session)
+# end::db-setup[]
 
 
+# tag::fetch[]
 def fetch_all_users(driver, db_name) -> list:
     with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.READ) as read_tx:
@@ -83,8 +95,10 @@ def fetch_all_users(driver, db_name) -> list:
             for i, JSON in enumerate(users, start=0):
                 print(f"User #{i + 1} — Full-name:", JSON['u']['full-name'][0]['value'])
             return users
+# end::fetch[]
 
 
+# tag::insert[]
 def insert_new_user(driver, db_name, name, email) -> list:
     with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
@@ -97,8 +111,10 @@ def insert_new_user(driver, db_name, name, email) -> list:
                 email = concept_map.get("e").as_attribute().get_value()
                 print("Added new user. Name: " + name + ", E-mail:" + email)
             return response
+# end::insert[]
 
 
+# tag::get[]
 def get_files_by_user(driver, db_name, name, inference=False):
     options = TypeDBOptions(infer=inference)
     with driver.session(db_name, SessionType.DATA) as data_session:
@@ -126,8 +142,10 @@ def get_files_by_user(driver, db_name, name, inference=False):
             else:
                 print("Error: No users found with that name.")
                 return None
+# end::get[]
 
 
+# tag::update[]
 def update_filepath(driver, db_name, old, new):
     with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
@@ -148,8 +166,10 @@ def update_filepath(driver, db_name, old, new):
             else:
                 print("No matched paths: nothing to update.")
                 return None
+# end::update[]
 
 
+# tag::delete[]
 def delete_file(driver, db_name, path):
     with driver.session(db_name, SessionType.DATA) as data_session:
         with data_session.transaction(TransactionType.WRITE) as write_tx:
@@ -176,16 +196,20 @@ def delete_file(driver, db_name, path):
                 print("No files matched in the database.")
                 print("No files were deleted.")
                 return False
+# end::delete[]
 
 
+# tag::connection[]
 def connection(edition, addr, username='admin', password='password'):
     if edition.lower() == 'core':
         return TypeDB.core_driver(addr)
     if edition.lower() == 'cloud':
         credentials = TypeDBCredential(username, password, tls_enabled=True)
         return TypeDB.cloud_driver(addr, credentials)
+# end::connection[]
 
 
+# tag::main[]
 def main():
     with connection(TYPEDB_EDITION, SERVER_ADDR) as driver:
         if not db_setup(driver, DB_NAME, db_reset=False):
@@ -223,7 +247,9 @@ def main():
         print(f"\nRequest 6 of 6: Delete the file with path {path}")
         deleted = delete_file(driver, DB_NAME, path)
         assert deleted
+# end::main[]
 
 
 if __name__ == "__main__":
     main()
+# end::code[]
