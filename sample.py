@@ -1,9 +1,17 @@
 # tag::code[]
 from typedb.driver import TypeDB, SessionType, TransactionType, TypeDBOptions, TypeDBCredential
+from enum import Enum
 
 DB_NAME = "sample_app_db"
 SERVER_ADDR = "127.0.0.1:1729"
-TYPEDB_EDITION = 'core'
+
+
+class Edition(Enum):
+    Cloud = 1
+    Core = 2
+
+
+TYPEDB_EDITION = Edition.Core
 
 
 # tag::create_new_db[]
@@ -201,9 +209,9 @@ def delete_file(driver, db_name, path):
 
 # tag::connection[]
 def connection(edition, addr, username='admin', password='password'):
-    if edition.lower() == 'core':
+    if edition is Edition.Core:
         return TypeDB.core_driver(addr)
-    if edition.lower() == 'cloud':
+    if edition is Edition.Cloud:
         credentials = TypeDBCredential(username, password, tls_enabled=True)
         return TypeDB.cloud_driver(addr, credentials)
 # end::connection[]
