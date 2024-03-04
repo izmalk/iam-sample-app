@@ -208,7 +208,7 @@ def delete_file(driver, db_name, path):
 
 
 # tag::connection[]
-def connection(edition, addr, username='admin', password='password'):
+def connect_to_typedb(edition, addr, username='admin', password='password'):
     if edition is Edition.Core:
         return TypeDB.core_driver(addr)
     if edition is Edition.Cloud:
@@ -219,7 +219,7 @@ def connection(edition, addr, username='admin', password='password'):
 
 # tag::main[]
 def main():
-    with connection(TYPEDB_EDITION, SERVER_ADDR) as driver:
+    with connect_to_typedb(TYPEDB_EDITION, SERVER_ADDR) as driver:
         if not db_setup(driver, DB_NAME, db_reset=False):
             print("Terminating...")
             exit()
