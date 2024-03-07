@@ -3,22 +3,26 @@
 from typedb.driver import TypeDB, SessionType, TransactionType, TypeDBOptions, TypeDBCredential
 from enum import Enum
 # end::import[]
-# tag::constants[]
-DB_NAME = "sample_app_db"
-SERVER_ADDR = "127.0.0.1:1729"
 
 
+# tag::enum[]
 class Edition(Enum):
     Cloud = 1
     Core = 2
+# end::enum[]
 
 
+# tag::constants[]
+DB_NAME = "sample_app_db"
+SERVER_ADDR = "127.0.0.1:1729"
 TYPEDB_EDITION = Edition.Core
+CLOUD_USERNAME = "admin"
+CLOUD_PASSWORD = "password"
 # end::constants[]
 
 
 # tag::create_new_db[]
-def create_new_database(driver, db_name, db_reset=False) -> bool:
+def try_create_database(driver, db_name, db_reset=False) -> bool:
     if driver.databases.contains(db_name):
         if db_reset:
             print("Replacing an existing database", end="...")
@@ -29,7 +33,7 @@ def create_new_database(driver, db_name, db_reset=False) -> bool:
         else:
             answer = input("Found a pre-existing database. Do you want to replace it? (Y/N) ")
             if answer.lower() == "y":
-                return create_new_database(driver, db_name, db_reset=True)
+                return try_create_database(driver, db_name, db_reset=True)
             else:
                 print("Reusing an existing database.")
                 return False
@@ -84,11 +88,11 @@ def test_initial_database(data_session) -> bool:
 # tag::db-setup[]
 def db_setup(driver, db_name, db_reset=False) -> bool:
     print(f"Setting up the database: {db_name}")
-    new_database = create_new_database(driver, db_name, db_reset)
+    is_new = try_create_database(driver, db_name, db_reset)
     if not driver.databases.contains(db_name):
         print("Database creation failed. Terminating...")
         return False
-    if new_database:
+    if is_new:
         with driver.session(db_name, SessionType.SCHEMA) as session:
             db_schema_setup(session)
         with driver.session(db_name, SessionType.DATA) as session:
@@ -212,7 +216,7 @@ def delete_file(driver, db_name, path):
 
 
 # tag::connection[]
-def connect_to_typedb(edition, addr, username='admin', password='password'):
+def connect_to_typedb(edition, addr, username=CLOUD_USERNAME, password=CLOUD_PASSWORD):
     if edition is Edition.Core:
         return TypeDB.core_driver(addr)
     if edition is Edition.Cloud:

@@ -15,9 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Subjects
-insert $p isa person, has full-name "Masako Holley", has email "masako.holley@vaticle.com";  # No access
-insert $p isa person, has full-name "Pearle Goodman", has email "pearle.goodman@vaticle.com";  # Sales manager
-insert $p isa person, has full-name "Kevin Morrison", has email "kevin.morrison@vaticle.com";  # Full access
+insert $p isa person, has full-name "Masako Holley", has email "masako.holley@typedb.com";  # No access
+insert $p isa person, has full-name "Pearle Goodman", has email "pearle.goodman@typedb.com";  # Sales manager
+insert $p isa person, has full-name "Kevin Morrison", has email "kevin.morrison@typedb.com";  # Full access
 
 # Objects
 insert $f isa file, has path "iopvu.java", has size-kb 55;
