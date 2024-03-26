@@ -22,26 +22,12 @@ CLOUD_PASSWORD = "password"
 
 
 # tag::create_new_db[]
-def try_create_database(driver, db_name, db_reset=False) -> bool:
-    if driver.databases.contains(db_name):
-        if db_reset:
-            print("Replacing an existing database", end="...")
-            driver.databases.get(db_name).delete()  # Delete the database if it exists already
-            driver.databases.create(db_name)
-            print("OK")
-            return True
-        else:
-            answer = input("Found a pre-existing database. Do you want to replace it? (Y/N) ")
-            if answer.lower() == "y":
-                return try_create_database(driver, db_name, db_reset=True)
-            else:
-                print("Reusing an existing database.")
-                return False
-    else:  # No such database found on the server
-        print("Creating a new database", end="...")
-        driver.databases.create(db_name)
-        print("OK")
-        return True
+def replace_database(driver, db_name) -> bool:
+    print("Replacing an existing database", end="...")
+    driver.databases.get(db_name).delete()  # Delete the database if it exists already
+    driver.databases.create(db_name)
+    print("OK")
+    return True
 # end::create_new_db[]
 
 
@@ -70,7 +56,7 @@ def db_dataset_setup(data_session, data_file='iam-data-single-query.tql'):
 
 
 # tag::test-db[]
-def test_initial_database(data_session) -> bool:
+def db_check(data_session) -> bool:
     with data_session.transaction(TransactionType.READ) as tx:
         test_query = "match $u isa user; get $u; count;"
         print("Testing the database", end="...")
@@ -87,8 +73,23 @@ def test_initial_database(data_session) -> bool:
 
 # tag::db-setup[]
 def db_setup(driver, db_name, db_reset=False) -> bool:
+    if driver.databases.contains(db_name):
+        if db_reset:
+            replace_database(driver, db_name)
+        else:
+            answer = input("Found a pre-existing database. Do you want to replace it? (Y/N) ")
+            if answer.lower() == "y":
+                replace_database(driver, db_name)
+            else:
+                print("Reusing an existing database.")
+    else:  # No such database found on the server
+        print("Creating a new database", end="...")
+        driver.databases.create(db_name)
+        print("OK")
+        return True
+
     print(f"Setting up the database: {db_name}")
-    is_new = try_create_database(driver, db_name, db_reset)
+    is_new = replace_database(driver, db_name, db_reset)
     if not driver.databases.contains(db_name):
         print("Database creation failed. Terminating...")
         return False
@@ -98,7 +99,7 @@ def db_setup(driver, db_name, db_reset=False) -> bool:
         with driver.session(db_name, SessionType.DATA) as session:
             db_dataset_setup(session)
     with driver.session(db_name, SessionType.DATA) as session:
-        return test_initial_database(session)
+        return db_check(session)
 # end::db-setup[]
 
 
@@ -216,7 +217,7 @@ def delete_file(driver, db_name, path):
 
 
 # tag::connection[]
-def connect_to_typedb(edition, addr, username=CLOUD_USERNAME, password=CLOUD_PASSWORD):
+def connect_to_TypeDB(edition, addr, username=CLOUD_USERNAME, password=CLOUD_PASSWORD):
     if edition is Edition.Core:
         return TypeDB.core_driver(addr)
     if edition is Edition.Cloud:
@@ -232,7 +233,7 @@ def queries(driver, db_name):
     assert len(users) == 3
 
     new_name = "Jack Keeper"
-    new_email = "jk@vaticle.com"
+    new_email = "jk@typedb.com"
     print(f"\nRequest 2 of 6: Add a new user with the full-name {new_name} and email {new_email}")
     insert_new_user(driver, DB_NAME, new_name, new_email)
 
@@ -263,7 +264,7 @@ def queries(driver, db_name):
 
 # tag::main[]
 def main():
-    with connect_to_typedb(TYPEDB_EDITION, SERVER_ADDR) as driver:
+    with connect_to_TypeDB(TYPEDB_EDITION, SERVER_ADDR) as driver:
         if db_setup(driver, DB_NAME, db_reset=False):
             queries(driver, DB_NAME)
         else:
