@@ -21,15 +21,6 @@ CLOUD_PASSWORD = "password"
 # end::constants[]
 
 
-# tag::reset_db[]
-def reset_database(driver, db_name) -> bool:
-    print("Deleting an existing database", end="...")
-    driver.databases.get(db_name).delete()  # Delete the database if it exists already
-    print("OK")
-    return create_database(driver, db_name)
-# tag::reset_db[]
-
-
 # tag::create_new_db[]
 def create_database(driver, db_name) -> bool:
     print("Creating a new database", end="...")
@@ -89,9 +80,14 @@ def db_setup(driver, db_name, db_reset=False) -> bool:
     if driver.databases.contains(db_name):
         if db_reset or (input("Found a pre-existing database. Do you want to replace it? (Y/N) ").lower() == "y"):
             print("Replacing an existing database: ")
-            if not reset_database(driver, db_name):
-                print("Resetting an existing database failed. Terminating...")
+            print("Deleting an existing database", end="...")
+            driver.databases.get(db_name).delete()  # Delete the database if it exists already
+            print("OK")
+            print("Creating a new database", end="...")
+            if not create_database(driver, db_name):
+                print("Creating a new database failed. Terminating...")
                 return False
+            print("OK")
         else:
             print("Reusing an existing database.")
     else:  # No such database found on the server
@@ -104,7 +100,7 @@ def db_setup(driver, db_name, db_reset=False) -> bool:
         with driver.session(db_name, SessionType.DATA) as session:
             return db_check(session)
     else:
-        print("Database creation failed. Terminating...")
+        print("Database not found. Terminating...")
         return False
 # end::db-setup[]
 
