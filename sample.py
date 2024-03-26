@@ -21,12 +21,24 @@ CLOUD_PASSWORD = "password"
 # end::constants[]
 
 
-# tag::create_new_db[]
-def replace_database(driver, db_name) -> bool:
-    print("Replacing an existing database", end="...")
+# tag::reset_db[]
+def reset_database(driver, db_name) -> bool:
+    print("Deleting an existing database", end="...")
     driver.databases.get(db_name).delete()  # Delete the database if it exists already
+    print("OK")
+    return create_database(driver, db_name)
+# tag::reset_db[]
+
+
+# tag::create_new_db[]
+def create_database(driver, db_name) -> bool:
+    print("Creating a new database", end="...")
     driver.databases.create(db_name)
     print("OK")
+    with driver.session(db_name, SessionType.SCHEMA) as session:
+        db_schema_setup(session)
+    with driver.session(db_name, SessionType.DATA) as session:
+        db_dataset_setup(session)
     return True
 # end::create_new_db[]
 
@@ -73,33 +85,27 @@ def db_check(data_session) -> bool:
 
 # tag::db-setup[]
 def db_setup(driver, db_name, db_reset=False) -> bool:
+    print(f"Setting up the database: {db_name}")
     if driver.databases.contains(db_name):
-        if db_reset:
-            replace_database(driver, db_name)
+        if db_reset or (input("Found a pre-existing database. Do you want to replace it? (Y/N) ").lower() == "y"):
+            print("Replacing an existing database: ")
+            if not reset_database(driver, db_name):
+                print("Resetting an existing database failed. Terminating...")
+                return False
         else:
-            answer = input("Found a pre-existing database. Do you want to replace it? (Y/N) ")
-            if answer.lower() == "y":
-                replace_database(driver, db_name)
-            else:
-                print("Reusing an existing database.")
+            print("Reusing an existing database.")
     else:  # No such database found on the server
         print("Creating a new database", end="...")
-        driver.databases.create(db_name)
+        if not create_database(driver, db_name):
+            print("Creating a new database failed. Terminating...")
+            return False
         print("OK")
-        return True
-
-    print(f"Setting up the database: {db_name}")
-    is_new = replace_database(driver, db_name, db_reset)
-    if not driver.databases.contains(db_name):
+    if driver.databases.contains(db_name):
+        with driver.session(db_name, SessionType.DATA) as session:
+            return db_check(session)
+    else:
         print("Database creation failed. Terminating...")
         return False
-    if is_new:
-        with driver.session(db_name, SessionType.SCHEMA) as session:
-            db_schema_setup(session)
-        with driver.session(db_name, SessionType.DATA) as session:
-            db_dataset_setup(session)
-    with driver.session(db_name, SessionType.DATA) as session:
-        return db_check(session)
 # end::db-setup[]
 
 
