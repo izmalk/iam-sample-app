@@ -69,7 +69,7 @@ def db_check(data_session) -> bool:
             print("Passed")
             return True
         else:
-            print("Failed with the result:", result, "\n Expected result: 3.")
+            print("Failed the test with the result:", result, "\n Expected result: 3.")
             return False
 # end::test-db[]
 
@@ -83,13 +83,13 @@ def db_setup(driver, db_name, db_reset=False) -> bool:
             driver.databases.get(db_name).delete()  # Delete the database if it exists already
             print("OK")
             if not create_database(driver, db_name):
-                print("Creating a new database failed. Terminating...")
+                print("Failed to create a new database. Terminating...")
                 return False
         else:
             print("Reusing an existing database.")
     else:  # No such database found on the server
         if not create_database(driver, db_name):
-            print("Creating a new database failed. Terminating...")
+            print("Failed to create a new database. Terminating...")
             return False
     if driver.databases.contains(db_name):
         with driver.session(db_name, SessionType.DATA) as session:
